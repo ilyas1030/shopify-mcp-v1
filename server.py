@@ -19,6 +19,7 @@ from enum import Enum
 import httpx
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -38,8 +39,24 @@ logger = logging.getLogger("shopify_mcp")
 
 PORT          = int(os.environ.get("PORT", "8000"))
 MCP_TRANSPORT = os.environ.get("MCP_TRANSPORT", "streamable-http")
+_raw_allowed = os.environ.get("ALLOWED_HOSTS", "").strip()
+if not _raw_allowed or _raw_allowed == "*":
+    _transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+else:
+    _transport_security = TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=[h.strip() for h in _raw_allowed.split(",") if h.strip()],
+    )
 
-mcp = FastMCP("shopify_mcp", host="0.0.0.0", port=PORT, json_response=True)
+mcp = FastMCP(
+    "shopify_mcp",
+    host="0.0.0.0",
+    port=PORT,
+    json_response=True,
+    transport_security=_transport_security,
+)
+
+
 
 
 # ---------------------------------------------------------------------------
